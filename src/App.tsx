@@ -3,7 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import CRM from "./pages/CRM";
+import Dashboard from "./components/Dashboard";
+import Leads from "./pages/Leads";
+import Estimates from "./pages/Estimates";
+import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,7 +19,18 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<CRM />}>
+            <Route index element={<Dashboard />} />
+            <Route path="leads" element={<Leads />} />
+            <Route path="estimates" element={<Estimates />} />
+            <Route path="invoices" element={<Invoices />} />
+            {/* Placeholder routes for other CRM features */}
+            <Route path="customers" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Customers - Coming Soon</h1></div>} />
+            <Route path="inspections" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Inspections - Coming Soon</h1></div>} />
+            <Route path="reviews" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Reviews - Coming Soon</h1></div>} />
+            <Route path="reports" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Reports - Coming Soon</h1></div>} />
+            <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Settings - Coming Soon</h1></div>} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

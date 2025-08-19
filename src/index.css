@@ -17,24 +17,46 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* De La Rosa Roofing Brand Colors */
+    --primary: 220 100% 20%; /* Deep navy blue from logo */
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 220 100% 35%;
+    --primary-dark: 220 100% 15%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 15% 85%; /* Light gray from logo swoosh */
+    --secondary-foreground: 220 100% 20%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 100% 25%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 220 100% 20%;
+
+    /* Success colors for completed jobs */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning colors for pending items */
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 100% 20%), hsl(220 100% 35%));
+    --gradient-secondary: linear-gradient(135deg, hsl(210 15% 85%), hsl(210 15% 90%));
+
+    /* Shadows */
+    --shadow-roofing: 0 10px 30px -10px hsl(220 100% 20% / 0.3);
+    --shadow-card: 0 4px 6px -1px hsl(220 100% 20% / 0.1);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.5rem;
 
