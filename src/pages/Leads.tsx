@@ -5,6 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Phone, Mail, Calendar, Plus, Filter } from 'lucide-react';
+import NewLeadModal from '@/components/modals/NewLeadModal';
+import FollowUpModal from '@/components/modals/FollowUpModal';
+import ViewItemModal from '@/components/modals/ViewItemModal';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data
 const leads = [
@@ -65,8 +69,14 @@ const leads = [
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [leadsData, setLeadsData] = useState(leads);
+  const { toast } = useToast();
 
-  const filteredLeads = leads.filter(lead => {
+  const handleLeadAdded = (newLead: any) => {
+    setLeadsData([...leadsData, newLead]);
+  };
+
+  const filteredLeads = leadsData.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.project.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || lead.status.toLowerCase() === statusFilter;
@@ -81,10 +91,7 @@ export default function Leads() {
           <h1 className="text-3xl font-bold text-primary">Leads</h1>
           <p className="text-muted-foreground">Manage and track your potential customers</p>
         </div>
-        <Button className="bg-primary hover:bg-primary-dark">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Lead
-        </Button>
+        <NewLeadModal onLeadAdded={handleLeadAdded} />
       </div>
 
       {/* Filters */}
@@ -114,81 +121,97 @@ export default function Leads() {
         </Button>
       </div>
 
-      {/* Leads Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredLeads.map((lead) => (
-          <Card key={lead.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg font-semibold">{lead.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">{lead.project}</p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Badge variant={
-                    lead.status === 'New' ? 'default' :
-                    lead.status === 'Contacted' ? 'secondary' :
-                    lead.status === 'Estimate Sent' ? 'outline' : 'default'
-                  }>
-                    {lead.status}
-                  </Badge>
-                  <Badge variant={
-                    lead.priority === 'High' ? 'destructive' :
-                    lead.priority === 'Medium' ? 'default' : 'secondary'
-                  } className="text-xs">
-                    {lead.priority}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Contact Info */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{lead.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{lead.phone}</span>
-                </div>
-              </div>
+        {/* Leads Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredLeads.map((lead) => (
+            <ViewItemModal key={lead.id} type="lead" item={lead}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg font-semibold">{lead.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">{lead.project}</p>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={
+                        lead.status === 'New' ? 'default' :
+                        lead.status === 'Contacted' ? 'secondary' :
+                        lead.status === 'Estimate Sent' ? 'outline' : 'default'
+                      }>
+                        {lead.status}
+                      </Badge>
+                      <Badge variant={
+                        lead.priority === 'High' ? 'destructive' :
+                        lead.priority === 'Medium' ? 'default' : 'secondary'
+                      } className="text-xs">
+                        {lead.priority}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Contact Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{lead.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{lead.phone}</span>
+                    </div>
+                  </div>
 
-              {/* Details */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Source:</span>
-                  <p className="font-medium">{lead.source}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Value:</span>
-                  <p className="font-medium text-success">{lead.value}</p>
-                </div>
-              </div>
+                  {/* Details */}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Source:</span>
+                      <p className="font-medium">{lead.source}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Value:</span>
+                      <p className="font-medium text-success">{lead.value}</p>
+                    </div>
+                  </div>
 
-              {/* Timeline */}
-              <div className="text-sm space-y-1 border-t pt-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Next Follow-up:</span>
-                </div>
-                <p className="font-medium text-primary ml-6">{lead.nextFollowUp}</p>
-                <p className="text-xs text-muted-foreground ml-6">Created {lead.created}</p>
-              </div>
+                  {/* Timeline */}
+                  <div className="text-sm space-y-1 border-t pt-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Next Follow-up:</span>
+                    </div>
+                    <p className="font-medium text-primary ml-6">{lead.nextFollowUp}</p>
+                    <p className="text-xs text-muted-foreground ml-6">Created {lead.created}</p>
+                  </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
-                <Button size="sm" className="flex-1">
-                  Follow Up
-                </Button>
-                <Button size="sm" variant="outline" className="flex-1">
-                  Send Estimate
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                    <FollowUpModal 
+                      leadName={lead.name} 
+                      leadPhone={lead.phone} 
+                      leadEmail={lead.email}
+                    >
+                      <Button size="sm" className="flex-1">
+                        Follow Up
+                      </Button>
+                    </FollowUpModal>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => toast({
+                        title: "Estimate",
+                        description: `Creating estimate for ${lead.name}...`
+                      })}
+                    >
+                      Send Estimate
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </ViewItemModal>
+          ))}
+        </div>
 
       {/* Automation Notice */}
       <Card className="border-primary/20 bg-primary/5">

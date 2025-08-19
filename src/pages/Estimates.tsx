@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, DollarSign, Calendar, Plus, Eye, Send } from 'lucide-react';
+import NewEstimateModal from '@/components/modals/NewEstimateModal';
+import ViewItemModal from '@/components/modals/ViewItemModal';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data
 const estimates = [
@@ -63,8 +66,14 @@ const estimates = [
 export default function Estimates() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [estimatesData, setEstimatesData] = useState(estimates);
+  const { toast } = useToast();
 
-  const filteredEstimates = estimates.filter(estimate => {
+  const handleEstimateAdded = (newEstimate: any) => {
+    setEstimatesData([...estimatesData, newEstimate]);
+  };
+
+  const filteredEstimates = estimatesData.filter(estimate => {
     const matchesSearch = estimate.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          estimate.project.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          estimate.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -91,10 +100,7 @@ export default function Estimates() {
           <h1 className="text-3xl font-bold text-primary">Estimates</h1>
           <p className="text-muted-foreground">Create and manage project estimates</p>
         </div>
-        <Button className="bg-primary hover:bg-primary-dark">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Estimate
-        </Button>
+        <NewEstimateModal onEstimateAdded={handleEstimateAdded} />
       </div>
 
       {/* Stats */}
@@ -205,21 +211,37 @@ export default function Estimates() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
+                    <ViewItemModal type="estimate" item={estimate}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </ViewItemModal>
                     {estimate.status === 'Draft' && (
-                      <Button size="sm" className="bg-primary hover:bg-primary-dark">
+                      <Button 
+                        size="sm" 
+                        className="bg-primary hover:bg-primary-dark"
+                        onClick={() => toast({
+                          title: "Estimate Sent",
+                          description: `${estimate.id} has been sent to ${estimate.customer}.`
+                        })}
+                      >
                         <Send className="h-4 w-4 mr-1" />
                         Send
                       </Button>
                     )}
-                    {estimate.status === 'Sent' || estimate.status === 'Viewed' ? (
-                      <Button variant="outline" size="sm">
+                    {(estimate.status === 'Sent' || estimate.status === 'Viewed') && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toast({
+                          title: "Follow-up Scheduled",
+                          description: `Follow-up with ${estimate.customer} has been scheduled.`
+                        })}
+                      >
                         Follow Up
                       </Button>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>

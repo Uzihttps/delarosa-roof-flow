@@ -3,6 +3,9 @@ import StatCard from '@/components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import NewLeadModal from '@/components/modals/NewLeadModal';
+import FollowUpModal from '@/components/modals/FollowUpModal';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data - in a real app this would come from your database
 const stats = [
@@ -51,6 +54,15 @@ const upcomingTasks = [
 ];
 
 export default function Dashboard() {
+  const { toast } = useToast();
+
+  const handleStatCardClick = (title: string) => {
+    toast({
+      title: "Navigation",
+      description: `Navigating to ${title} section...`
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -59,15 +71,15 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back! Here's what's happening with your roofing business.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary-dark">
-          + New Lead
-        </Button>
+        <NewLeadModal />
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
+          <div key={index} onClick={() => handleStatCardClick(stat.title)} className="cursor-pointer">
+            <StatCard {...stat} />
+          </div>
         ))}
       </div>
 
@@ -107,6 +119,29 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <FollowUpModal 
+                  leadName={recentLeads[0]?.name || "Lead"} 
+                  leadPhone={recentLeads[0]?.phone} 
+                  leadEmail="john@email.com"
+                >
+                  <Button size="sm" className="flex-1">
+                    Follow Up Recent Leads
+                  </Button>
+                </FollowUpModal>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => toast({
+                    title: "Estimate",
+                    description: `Creating estimate for recent leads...`
+                  })}
+                >
+                  Send Estimates
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Receipt, DollarSign, Calendar, Plus, Eye, Send, Download } from 'lucide-react';
+import NewInvoiceModal from '@/components/modals/NewInvoiceModal';
+import ViewItemModal from '@/components/modals/ViewItemModal';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data
 const invoices = [
@@ -63,8 +66,14 @@ const invoices = [
 export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [invoicesData, setInvoicesData] = useState(invoices);
+  const { toast } = useToast();
 
-  const filteredInvoices = invoices.filter(invoice => {
+  const handleInvoiceAdded = (newInvoice: any) => {
+    setInvoicesData([...invoicesData, newInvoice]);
+  };
+
+  const filteredInvoices = invoicesData.filter(invoice => {
     const matchesSearch = invoice.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          invoice.project.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          invoice.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -95,10 +104,7 @@ export default function Invoices() {
           <h1 className="text-3xl font-bold text-primary">Invoices</h1>
           <p className="text-muted-foreground">Track payments and manage billing</p>
         </div>
-        <Button className="bg-primary hover:bg-primary-dark">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Invoice
-        </Button>
+        <NewInvoiceModal onInvoiceAdded={handleInvoiceAdded} />
       </div>
 
       {/* Stats */}
@@ -213,16 +219,32 @@ export default function Invoices() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    <Button variant="outline" size="sm">
+                    <ViewItemModal type="invoice" item={invoice}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </ViewItemModal>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast({
+                        title: "PDF Generated",
+                        description: `${invoice.id} PDF is being generated...`
+                      })}
+                    >
                       <Download className="h-4 w-4 mr-1" />
                       PDF
                     </Button>
                     {(invoice.status === 'Sent' || invoice.status === 'Overdue') && (
-                      <Button size="sm" className="bg-primary hover:bg-primary-dark">
+                      <Button 
+                        size="sm" 
+                        className="bg-primary hover:bg-primary-dark"
+                        onClick={() => toast({
+                          title: "Reminder Sent",
+                          description: `Payment reminder sent to ${invoice.customer}.`
+                        })}
+                      >
                         <Send className="h-4 w-4 mr-1" />
                         Remind
                       </Button>
