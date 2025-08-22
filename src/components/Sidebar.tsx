@@ -11,7 +11,9 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Video,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,8 @@ const navigation = [
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Estimates', href: '/estimates', icon: FileText },
   { name: 'Invoices', href: '/invoices', icon: DollarSign },
+  { name: 'Video Reviews', href: '/video-reviews', icon: Video },
+  { name: 'Import Data', href: '/client-imports', icon: Upload },
   { name: 'Inspections', href: '/inspections', icon: Calendar },
   { name: 'Reviews', href: '/reviews', icon: Star },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
