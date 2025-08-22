@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      client_imports: {
+        Row: {
+          created_at: string
+          failed_imports: number | null
+          file_name: string
+          file_url: string | null
+          id: string
+          import_name: string
+          import_type: string
+          status: string
+          successful_imports: number | null
+          total_records: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          failed_imports?: number | null
+          file_name: string
+          file_url?: string | null
+          id?: string
+          import_name: string
+          import_type: string
+          status?: string
+          successful_imports?: number | null
+          total_records?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          failed_imports?: number | null
+          file_name?: string
+          file_url?: string | null
+          id?: string
+          import_name?: string
+          import_type?: string
+          status?: string
+          successful_imports?: number | null
+          total_records?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_reviews: {
+        Row: {
+          client_email: string
+          client_name: string
+          created_at: string
+          deadline: string | null
+          id: string
+          notes: string | null
+          project_name: string
+          request_date: string
+          review_link: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          client_email: string
+          client_name: string
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          notes?: string | null
+          project_name: string
+          request_date?: string
+          review_link?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          client_email?: string
+          client_name?: string
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          notes?: string | null
+          project_name?: string
+          request_date?: string
+          review_link?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
