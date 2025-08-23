@@ -8,8 +8,6 @@ import Dashboard from "./components/Dashboard";
 import Leads from "./pages/Leads";
 import Estimates from "./pages/Estimates";
 import Invoices from "./pages/Invoices";
-import VideoReviews from "./pages/VideoReviews";
-import ClientImports from "./pages/ClientImports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,8 +24,6 @@ const App = () => (
             <Route path="leads" element={<Leads />} />
             <Route path="estimates" element={<Estimates />} />
             <Route path="invoices" element={<Invoices />} />
-            <Route path="video-reviews" element={<VideoReviews />} />
-            <Route path="client-imports" element={<ClientImports />} />
             {/* Placeholder routes for other CRM features */}
             <Route path="customers" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Customers - Coming Soon</h1></div>} />
             <Route path="inspections" element={<div className="p-6"><h1 className="text-2xl font-bold text-primary">Inspections - Coming Soon</h1></div>} />
