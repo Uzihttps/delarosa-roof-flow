@@ -30,6 +30,34 @@ export default function NewClientImportModal({ open, onOpenChange }: NewClientIm
         reader.onload = async (e) => {
           const text = e.target?.result as string;
           const rows = text.split('\n').filter(row => row.trim());
+          const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+          
+          // Parse CSV and import contacts
+          let successCount = 0;
+          let failCount = 0;
+          
+          for (let i = 1; i < rows.length; i++) {
+            const values = rows[i].split(',').map(v => v.trim());
+            const nameIdx = headers.findIndex(h => h.includes('name'));
+            const emailIdx = headers.findIndex(h => h.includes('email'));
+            const phoneIdx = headers.findIndex(h => h.includes('phone'));
+            
+            if (nameIdx >= 0 && values[nameIdx]) {
+              const { error } = await supabase
+                .from('customers')
+                .insert({
+                  name: values[nameIdx],
+                  email: emailIdx >= 0 ? values[emailIdx] : null,
+                  phone: phoneIdx >= 0 ? values[phoneIdx] : null,
+                  user_id: user.id
+                });
+              
+              if (error) failCount++;
+              else successCount++;
+            } else {
+              failCount++;
+            }
+          }
           
           const { error } = await supabase
             .from('client_imports')
@@ -38,9 +66,9 @@ export default function NewClientImportModal({ open, onOpenChange }: NewClientIm
               import_name: file.name.replace('.csv', ''),
               import_type: 'csv',
               status: 'completed',
-              total_records: rows.length - 1, // Exclude header
-              successful_imports: rows.length - 1,
-              failed_imports: 0,
+              total_records: rows.length - 1,
+              successful_imports: successCount,
+              failed_imports: failCount,
               user_id: user.id
             });
           
@@ -54,7 +82,8 @@ export default function NewClientImportModal({ open, onOpenChange }: NewClientIm
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client_imports'] });
-      toast({ title: 'Import started successfully' });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({ title: 'Contacts imported successfully' });
       onOpenChange(false);
       setFile(null);
     },
