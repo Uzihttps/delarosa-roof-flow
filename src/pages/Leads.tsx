@@ -85,7 +85,7 @@ export default function Leads() {
   const filteredLeads = (leads || []).filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (lead.notes?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    const matchesStatus = statusFilter === 'all' || lead.status.toLowerCase() === statusFilter;
+    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -117,8 +117,11 @@ export default function Leads() {
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="new">New</SelectItem>
             <SelectItem value="contacted">Contacted</SelectItem>
-            <SelectItem value="estimate sent">Estimate Sent</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="qualified">Qualified</SelectItem>
+            <SelectItem value="proposal">Proposal</SelectItem>
+            <SelectItem value="negotiation">Negotiation</SelectItem>
+            <SelectItem value="won">Won</SelectItem>
+            <SelectItem value="lost">Lost</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline">
