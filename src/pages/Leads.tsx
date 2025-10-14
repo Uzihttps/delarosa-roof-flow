@@ -1,84 +1,90 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Mail, Calendar, Plus, Filter } from 'lucide-react';
+import { Phone, Mail, Calendar, Filter } from 'lucide-react';
 import NewLeadModal from '@/components/modals/NewLeadModal';
 import FollowUpModal from '@/components/modals/FollowUpModal';
 import ViewItemModal from '@/components/modals/ViewItemModal';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data
-const leads = [
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john@email.com',
-    phone: '(555) 123-4567',
-    project: 'Complete Roof Replacement',
-    source: 'Google Ads',
-    status: 'New',
-    priority: 'High',
-    value: '$15,000',
-    created: '2 hours ago',
-    nextFollowUp: 'Today, 2:00 PM'
-  },
-  {
-    id: 2,
-    name: 'Maria Garcia',
-    email: 'maria@email.com',
-    phone: '(555) 987-6543',
-    project: 'Roof Leak Repair',
-    source: 'Referral',
-    status: 'Contacted',
-    priority: 'Medium',
-    value: '$3,500',
-    created: '1 day ago',
-    nextFollowUp: 'Tomorrow, 10:00 AM'
-  },
-  {
-    id: 3,
-    name: 'David Johnson',
-    email: 'david@email.com',
-    phone: '(555) 456-7890',
-    project: 'Gutter Installation',
-    source: 'Website',
-    status: 'Estimate Sent',
-    priority: 'High',
-    value: '$2,800',
-    created: '3 days ago',
-    nextFollowUp: 'Friday, 3:00 PM'
-  },
-  {
-    id: 4,
-    name: 'Sarah Wilson',
-    email: 'sarah@email.com',
-    phone: '(555) 321-9876',
-    project: 'Roof Inspection',
-    source: 'Facebook',
-    status: 'Scheduled',
-    priority: 'Low',
-    value: '$500',
-    created: '5 days ago',
-    nextFollowUp: 'Next Monday, 9:00 AM'
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [leadsData, setLeadsData] = useState(leads);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleLeadAdded = (newLead: any) => {
-    setLeadsData([...leadsData, newLead]);
-  };
+  // Fetch leads from Supabase
+  const { data: leads, isLoading } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  const filteredLeads = leadsData.filter(lead => {
+  // Real-time subscription for new leads
+  useEffect(() => {
+    const channel = supabase
+      .channel('leads-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['leads'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Update lead status
+  const updateLeadMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from('leads')
+        .update({ status })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast({
+        title: "Success",
+        description: "Lead status updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update lead status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const filteredLeads = (leads || []).filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.project.toLowerCase().includes(searchTerm.toLowerCase());
+                         (lead.notes?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     const matchesStatus = statusFilter === 'all' || lead.status.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -91,7 +97,7 @@ export default function Leads() {
           <h1 className="text-3xl font-bold text-primary">Leads</h1>
           <p className="text-muted-foreground">Manage and track your potential customers</p>
         </div>
-        <NewLeadModal onLeadAdded={handleLeadAdded} />
+        <NewLeadModal />
       </div>
 
       {/* Filters */}
@@ -122,106 +128,131 @@ export default function Leads() {
       </div>
 
         {/* Leads Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredLeads.map((lead) => (
-            <ViewItemModal key={lead.id} type="lead" item={lead}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg font-semibold">{lead.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">{lead.project}</p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Badge variant={
-                        lead.status === 'New' ? 'default' :
-                        lead.status === 'Contacted' ? 'secondary' :
-                        lead.status === 'Estimate Sent' ? 'outline' : 'default'
-                      }>
-                        {lead.status}
-                      </Badge>
-                      <Badge variant={
-                        lead.priority === 'High' ? 'destructive' :
-                        lead.priority === 'Medium' ? 'default' : 'secondary'
-                      } className="text-xs">
-                        {lead.priority}
-                      </Badge>
-                    </div>
-                  </div>
+        {isLoading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2 mt-2" />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Contact Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{lead.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{lead.phone}</span>
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Source:</span>
-                      <p className="font-medium">{lead.source}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Value:</span>
-                      <p className="font-medium text-success">{lead.value}</p>
-                    </div>
-                  </div>
-
-                  {/* Timeline */}
-                  <div className="text-sm space-y-1 border-t pt-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Next Follow-up:</span>
-                    </div>
-                    <p className="font-medium text-primary ml-6">{lead.nextFollowUp}</p>
-                    <p className="text-xs text-muted-foreground ml-6">Created {lead.created}</p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <FollowUpModal 
-                      leadName={lead.name} 
-                      leadPhone={lead.phone} 
-                      leadEmail={lead.email}
-                    >
-                      <Button size="sm" className="flex-1">
-                        Follow Up
-                      </Button>
-                    </FollowUpModal>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => toast({
-                        title: "Estimate",
-                        description: `Creating estimate for ${lead.name}...`
-                      })}
-                    >
-                      Send Estimate
-                    </Button>
-                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-8 w-full" />
                 </CardContent>
               </Card>
-            </ViewItemModal>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : filteredLeads.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">No leads found. Add your first lead to get started.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredLeads.map((lead) => (
+              <ViewItemModal key={lead.id} type="lead" item={lead}>
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-lg font-semibold">{lead.name}</CardTitle>
+                        {lead.notes && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{lead.notes}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Select
+                          value={lead.status}
+                          onValueChange={(value) => updateLeadMutation.mutate({ id: lead.id, status: value })}
+                        >
+                          <SelectTrigger 
+                            className="h-auto py-1 px-2 text-xs w-auto"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="contacted">Contacted</SelectItem>
+                            <SelectItem value="qualified">Qualified</SelectItem>
+                            <SelectItem value="proposal">Proposal</SelectItem>
+                            <SelectItem value="negotiation">Negotiation</SelectItem>
+                            <SelectItem value="won">Won</SelectItem>
+                            <SelectItem value="lost">Lost</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Contact Info */}
+                    <div className="space-y-2">
+                      {lead.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate">{lead.email}</span>
+                        </div>
+                      )}
+                      {lead.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span>{lead.phone}</span>
+                        </div>
+                      )}
+                    </div>
 
-      {/* Automation Notice */}
+                    {/* Timeline */}
+                    <div className="text-sm space-y-1 border-t pt-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Created:</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">
+                        {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                      <FollowUpModal 
+                        leadName={lead.name} 
+                        leadPhone={lead.phone || ''} 
+                        leadEmail={lead.email || ''}
+                      >
+                        <Button size="sm" className="flex-1">
+                          Follow Up
+                        </Button>
+                      </FollowUpModal>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => toast({
+                          title: "Estimate",
+                          description: `Creating estimate for ${lead.name}...`
+                        })}
+                      >
+                        Send Estimate
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </ViewItemModal>
+            ))}
+          </div>
+        )}
+
+      {/* Info Card */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader>
-          <CardTitle className="text-primary">🤖 Automation Features</CardTitle>
+          <CardTitle className="text-primary">💡 Lead Management</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Automated follow-ups, review requests, and inspection reminders will be available once you connect your backend database. 
-            This will enable features like automatic email sequences, SMS notifications, and scheduled task creation.
+            Leads are automatically saved to your database. Click on any lead card to view details, or change the status dropdown to update the lead's progress through your sales pipeline.
           </p>
         </CardContent>
       </Card>
