@@ -59,12 +59,17 @@ export default function Leads() {
   // Update lead status
   const updateLeadMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
-        .update({ status })
-        .eq('id', id);
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select();
       
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No rows were updated. Check permissions.');
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
