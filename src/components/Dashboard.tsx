@@ -10,38 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Mock data - in a real app this would come from your database
-const stats = [
-  {
-    title: 'Active Leads',
-    value: '24',
-    change: '+12% from last month',
-    changeType: 'positive' as const,
-    icon: UserPlus
-  },
-  {
-    title: 'Active Projects',
-    value: '8',
-    change: '+2 this week',
-    changeType: 'positive' as const,
-    icon: Users
-  },
-  {
-    title: 'Monthly Revenue',
-    value: '$45,230',
-    change: '+18% from last month',
-    changeType: 'positive' as const,
-    icon: DollarSign
-  },
-  {
-    title: 'Pending Inspections',
-    value: '5',
-    change: '3 due today',
-    changeType: 'neutral' as const,
-    icon: Calendar
-  }
-];
-
 
 const upcomingTasks = [
   { task: 'Follow up with John Smith', type: 'Lead Follow-up', due: 'Today, 2:00 PM' },
@@ -52,6 +20,34 @@ const upcomingTasks = [
 
 export default function Dashboard() {
   const { toast } = useToast();
+
+  // Fetch active leads count (status = 'new')
+  const { data: activeLeadsCount } = useQuery({
+    queryKey: ['active-leads-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new');
+      
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch pending inspections count (status = 'scheduled')
+  const { data: pendingInspectionsCount } = useQuery({
+    queryKey: ['pending-inspections-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('inspections')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'scheduled');
+      
+      if (error) throw error;
+      return count || 0;
+    },
+  });
 
   // Fetch recent leads from Supabase
   const { data: recentLeads, isLoading } = useQuery({
@@ -67,6 +63,38 @@ export default function Dashboard() {
       return data || [];
     },
   });
+
+  // Dynamic stats based on real data
+  const stats = [
+    {
+      title: 'Active Leads',
+      value: activeLeadsCount?.toString() || '0',
+      change: 'New leads requiring contact',
+      changeType: 'neutral' as const,
+      icon: UserPlus
+    },
+    {
+      title: 'Active Projects',
+      value: '-',
+      change: 'No project tracking yet',
+      changeType: 'neutral' as const,
+      icon: Users
+    },
+    {
+      title: 'Monthly Revenue',
+      value: '-',
+      change: 'No revenue tracking yet',
+      changeType: 'neutral' as const,
+      icon: DollarSign
+    },
+    {
+      title: 'Pending Inspections',
+      value: pendingInspectionsCount?.toString() || '0',
+      change: 'Scheduled inspections',
+      changeType: 'neutral' as const,
+      icon: Calendar
+    }
+  ];
 
   const handleStatCardClick = (title: string) => {
     toast({
