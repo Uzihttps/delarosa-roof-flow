@@ -3,9 +3,12 @@ import StatCard from '@/components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import NewLeadModal from '@/components/modals/NewLeadModal';
 import FollowUpModal from '@/components/modals/FollowUpModal';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock data - in a real app this would come from your database
 const stats = [
@@ -39,12 +42,6 @@ const stats = [
   }
 ];
 
-const recentLeads = [
-  { name: 'John Smith', phone: '(555) 123-4567', project: 'Roof Replacement', status: 'New', priority: 'High' },
-  { name: 'Maria Garcia', phone: '(555) 987-6543', project: 'Roof Repair', status: 'Contacted', priority: 'Medium' },
-  { name: 'David Johnson', phone: '(555) 456-7890', project: 'Gutter Installation', status: 'Estimate Sent', priority: 'High' },
-  { name: 'Sarah Wilson', phone: '(555) 321-9876', project: 'Roof Inspection', status: 'Scheduled', priority: 'Low' },
-];
 
 const upcomingTasks = [
   { task: 'Follow up with John Smith', type: 'Lead Follow-up', due: 'Today, 2:00 PM' },
@@ -55,6 +52,21 @@ const upcomingTasks = [
 
 export default function Dashboard() {
   const { toast } = useToast();
+
+  // Fetch recent leads from Supabase
+  const { data: recentLeads, isLoading } = useQuery({
+    queryKey: ['recent-leads'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, name, email, phone, notes, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(4);
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const handleStatCardClick = (title: string) => {
     toast({
@@ -95,53 +107,73 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentLeads.map((lead, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium text-sm">{lead.name}</p>
-                    <p className="text-xs text-muted-foreground">{lead.phone}</p>
-                    <p className="text-xs text-muted-foreground">{lead.project}</p>
+              {isLoading ? (
+                // Loading state
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                    <Skeleton className="h-6 w-20" />
                   </div>
-                  <div className="text-right space-y-1">
-                    <Badge variant={
-                      lead.status === 'New' ? 'default' :
-                      lead.status === 'Contacted' ? 'secondary' :
-                      lead.status === 'Estimate Sent' ? 'outline' : 'default'
-                    }>
-                      {lead.status}
-                    </Badge>
-                    <Badge variant={
-                      lead.priority === 'High' ? 'destructive' :
-                      lead.priority === 'Medium' ? 'default' : 'secondary'
-                    } className="ml-1">
-                      {lead.priority}
-                    </Badge>
-                  </div>
+                ))
+              ) : !recentLeads || recentLeads.length === 0 ? (
+                // Empty state
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground text-sm">No leads yet. Click "Add Lead" to get started.</p>
                 </div>
-              ))}
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
-                <FollowUpModal 
-                  leadName={recentLeads[0]?.name || "Lead"} 
-                  leadPhone={recentLeads[0]?.phone} 
-                  leadEmail="john@email.com"
-                >
-                  <Button size="sm" className="flex-1">
-                    Follow Up Recent Leads
-                  </Button>
-                </FollowUpModal>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => toast({
-                    title: "Estimate",
-                    description: `Creating estimate for recent leads...`
-                  })}
-                >
-                  Send Estimates
-                </Button>
-              </div>
+              ) : (
+                // Real lead data
+                <>
+                  {recentLeads.map((lead) => (
+                    <div key={lead.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground">{lead.phone || 'No phone'}</p>
+                        <p className="text-xs text-muted-foreground">{lead.notes || 'No notes'}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={
+                          lead.status === 'new' ? 'default' :
+                          lead.status === 'contacted' ? 'secondary' :
+                          lead.status === 'qualified' ? 'outline' :
+                          lead.status === 'proposal' ? 'default' :
+                          lead.status === 'negotiation' ? 'secondary' :
+                          lead.status === 'won' ? 'default' :
+                          lead.status === 'lost' ? 'destructive' : 'default'
+                        }>
+                          {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <FollowUpModal 
+                      leadName={recentLeads[0]?.name || "Lead"} 
+                      leadPhone={recentLeads[0]?.phone} 
+                      leadEmail={recentLeads[0]?.email || ""}
+                    >
+                      <Button size="sm" className="flex-1">
+                        Follow Up Recent Leads
+                      </Button>
+                    </FollowUpModal>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => toast({
+                        title: "Estimate",
+                        description: `Creating estimate for recent leads...`
+                      })}
+                    >
+                      Send Estimates
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
